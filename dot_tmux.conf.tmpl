@@ -52,3 +52,7 @@ set -g @plugin 'christoomey/vim-tmux-navigator'
 
 # Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
 run '~/.tmux/plugins/tpm/tpm'
+
+# Claude Code status indicator (after TPM so nord-tmux status-right is already set)
+set -g status-right-length 80
+run-shell 'tmux set -g status-right "#(claude-tmux-status)$(tmux show -gv status-right)"'
