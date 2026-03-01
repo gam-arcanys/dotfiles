@@ -55,4 +55,4 @@ run '~/.tmux/plugins/tpm/tpm'
 
 # Claude Code status indicator (after TPM so nord-tmux status-right is already set)
 set -g status-right-length 80
-run-shell 'tmux set -g status-right "#(claude-tmux-status)$(tmux show -gv status-right)"'
+run-shell 'tmux set -g status-right "##(claude-tmux-status)$(tmux show -gv status-right | sed "s/#/##/g")"'
