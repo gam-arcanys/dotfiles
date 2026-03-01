@@ -8,7 +8,7 @@ STATUS_DIR="/tmp/claude-tmux-status"
 
 needs_input_panes=""
 needs_permission_panes=""
-working=0
+working_panes=""
 
 for f in "$STATUS_DIR"/%*; do
     [ -f "$f" ] || continue
@@ -31,12 +31,12 @@ for f in "$STATUS_DIR"/%*; do
             needs_input_panes="${needs_input_panes:+${needs_input_panes},}${location}"
             ;;
         working)
-            working=$((working + 1))
+            working_panes="${working_panes:+${working_panes},}${location}"
             ;;
     esac
 done
 
-[ -n "$needs_permission_panes" ] || [ -n "$needs_input_panes" ] || [ "$working" -gt 0 ] || exit 0
+[ -n "$needs_permission_panes" ] || [ -n "$needs_input_panes" ] || [ -n "$working_panes" ] || exit 0
 
 parts=""
 if [ -n "$needs_permission_panes" ]; then
@@ -45,8 +45,8 @@ fi
 if [ -n "$needs_input_panes" ]; then
     parts="${parts}#[fg=black,bg=yellow,bold] ✦${needs_input_panes} #[default]"
 fi
-if [ "$working" -gt 0 ]; then
-    parts="${parts}#[fg=black,bg=green,bold] ●${working} #[default]"
+if [ -n "$working_panes" ]; then
+    parts="${parts}#[fg=black,bg=green,bold] ●${working_panes} #[default]"
 fi
 
 echo "${parts} "
