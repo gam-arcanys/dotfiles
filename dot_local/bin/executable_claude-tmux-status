@@ -6,8 +6,8 @@ STATUS_DIR="/tmp/claude-tmux-status"
 
 [ -d "$STATUS_DIR" ] || exit 0
 
-needs_input=0
-needs_permission=0
+needs_input_panes=""
+needs_permission_panes=""
 working=0
 
 for f in "$STATUS_DIR"/%*; do
@@ -15,29 +15,35 @@ for f in "$STATUS_DIR"/%*; do
 
     pane_id="$(basename "$f")"
 
-    # Clean up stale files for panes that no longer exist
-    if ! tmux display-message -t "$pane_id" -p '' 2>/dev/null; then
+    # Resolve pane ID to session:window.pane, also validates pane exists
+    location="$(tmux display-message -t "$pane_id" -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)"
+    if [ -z "$location" ]; then
         rm -f "$f"
         continue
     fi
 
     state="$(cat "$f" 2>/dev/null)"
     case "$state" in
-        needs_permission) needs_permission=$((needs_permission + 1)) ;;
-        needs_input)      needs_input=$((needs_input + 1)) ;;
-        working)          working=$((working + 1)) ;;
+        needs_permission)
+            needs_permission_panes="${needs_permission_panes:+${needs_permission_panes},}${location}"
+            ;;
+        needs_input)
+            needs_input_panes="${needs_input_panes:+${needs_input_panes},}${location}"
+            ;;
+        working)
+            working=$((working + 1))
+            ;;
     esac
 done
 
-total=$((needs_input + needs_permission + working))
-[ "$total" -eq 0 ] && exit 0
+[ -n "$needs_permission_panes" ] || [ -n "$needs_input_panes" ] || [ "$working" -gt 0 ] || exit 0
 
 parts=""
-if [ "$needs_permission" -gt 0 ]; then
-    parts="${parts}#[fg=black,bg=red,bold] !${needs_permission} #[default]"
+if [ -n "$needs_permission_panes" ]; then
+    parts="${parts}#[fg=black,bg=red,bold] !${needs_permission_panes} #[default]"
 fi
-if [ "$needs_input" -gt 0 ]; then
-    parts="${parts}#[fg=black,bg=yellow,bold] ✦${needs_input} #[default]"
+if [ -n "$needs_input_panes" ]; then
+    parts="${parts}#[fg=black,bg=yellow,bold] ✦${needs_input_panes} #[default]"
 fi
 if [ "$working" -gt 0 ]; then
     parts="${parts}#[fg=black,bg=green,bold] ●${working} #[default]"
