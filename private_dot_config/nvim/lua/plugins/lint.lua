@@ -14,6 +14,7 @@ return {
                 typescriptreact = {"eslint_d"},
                 lua = {"luacheck"},
                 ruby = {"rubocop"},
+                python = {"ruff"},
                 css = {"stylelint"},
                 scss = {"stylelint"}
             }

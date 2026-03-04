@@ -29,7 +29,7 @@ return {
                     -- Disable formatting for specific LSPs (we use formatter.nvim)
                     if client.name == "ts_ls" or client.name == "html" or
                         client.name == "jsonls" or client.name == "yamlls" or
-                        client.name == "cssls" then
+                        client.name == "cssls" or client.name == "basedpyright" then
                         client.server_capabilities.documentFormattingProvider =
                             false
                         client.server_capabilities
@@ -87,21 +87,28 @@ return {
 
             -- LSP capabilities with completion support
             local capabilities = require("cmp_nvim_lsp").default_capabilities()
+            vim.lsp.config('*', { capabilities = capabilities })
 
             -- Set completion options
             vim.opt.completeopt = {"menu", "menuone", "noselect"}
 
+            -- rust_analyzer (not in mason ensure_installed, enable explicitly)
             vim.lsp.config('rust_analyzer', {
                 cmd = {'rust-analyzer'},
                 root_markers = {'Cargo.toml'},
-                capabilities = capabilities
             })
-
             vim.lsp.enable('rust_analyzer')
 
+            -- ts_ls: override filetypes (default includes VS Code-style javascript.jsx/typescript.tsx)
+            vim.lsp.config('ts_ls', {
+                filetypes = {
+                    "javascript", "javascriptreact",
+                    "typescript", "typescriptreact",
+                },
+            })
+
             -- tailwindcss: NativeWind support
-            require("lspconfig").tailwindcss.setup({
-                capabilities = capabilities,
+            vim.lsp.config('tailwindcss', {
                 filetypes = {
                     "javascript", "javascriptreact",
                     "typescript", "typescriptreact",
@@ -110,33 +117,62 @@ return {
                     tailwindCSS = {
                         experimental = {
                             classRegex = {
-                                { [[className\s*=\s*["'`]([^"'`]*)["'`]]] },
+                                { [=[className\s*=\s*["'`]([^"'`]*)["'`]]=] },
                                 { [[tw`([^`]*)]] },
                                 { [[cn\(([^)]*)\)]], [["([^"]*)"]] },
                             },
                         },
-                        validate = true,
                     },
                 },
-                root_dir = require("lspconfig.util").root_pattern(
-                    "tailwind.config.js", "tailwind.config.ts",
-                    "tailwind.config.cjs", "nativewind-env.d.ts",
-                    "nativewind.config.ts"
-                ),
-            })
-
-            -- cssls: StyleSheet CSS property completions
-            require("lspconfig").cssls.setup({
-                capabilities = capabilities,
+                root_dir = function(bufnr, on_dir)
+                    local fname = vim.api.nvim_buf_get_name(bufnr)
+                    on_dir(vim.fs.dirname(vim.fs.find({
+                        "tailwind.config.js", "tailwind.config.ts",
+                        "tailwind.config.cjs", "tailwind.config.mjs",
+                        "postcss.config.js", "postcss.config.cjs",
+                        "postcss.config.mjs", "postcss.config.ts",
+                        "nativewind-env.d.ts", "nativewind.config.ts",
+                    }, { path = fname, upward = true })[1]))
+                end,
             })
 
             -- jsonls: schema completions via schemastore
-            require("lspconfig").jsonls.setup({
-                capabilities = capabilities,
+            vim.lsp.config('jsonls', {
                 settings = {
                     json = {
                         schemas = require("schemastore").json.schemas(),
                         validate = { enable = true },
+                    },
+                },
+            })
+
+            -- basedpyright: Python LSP with virtual env detection
+            vim.lsp.config('basedpyright', {
+                before_init = function(_, config)
+                    local path = config.root_dir or vim.fn.getcwd()
+                    local venv_names = {".venv", "venv", ".env"}
+                    local dir = path
+                    for _ = 1, 8 do
+                        for _, venv in ipairs(venv_names) do
+                            local python = dir .. "/" .. venv .. "/bin/python"
+                            if vim.fn.executable(python) == 1 then
+                                config.settings = config.settings or {}
+                                config.settings.python = config.settings.python or {}
+                                config.settings.python.pythonPath = python
+                                return
+                            end
+                        end
+                        local parent = vim.fn.fnamemodify(dir, ":h")
+                        if parent == dir then break end
+                        dir = parent
+                    end
+                end,
+                settings = {
+                    basedpyright = {
+                        analysis = {
+                            typeCheckingMode = "standard",
+                            useLibraryCodeForTypes = true,
+                        },
                     },
                 },
             })
@@ -180,7 +216,7 @@ return {
         end
     }, {
         "mason-org/mason-lspconfig.nvim",
-        opts = {ensure_installed = {"lua_ls", "ts_ls", "tailwindcss", "cssls", "jsonls"}},
+        opts = {ensure_installed = {"lua_ls", "ts_ls", "tailwindcss", "cssls", "jsonls", "basedpyright"}},
         dependencies = {{"mason-org/mason.nvim"}, "neovim/nvim-lspconfig"}
     }, {"b0o/schemastore.nvim", lazy = true}
 }

@@ -179,11 +179,14 @@ return {
                     },
                     python = {
                         create_formatter_with_fallback({
+                            exe = "ruff",
+                            args = {"format", "--stdin-filename", "%", "-"},
+                            stdin = true
+                        }, {
                             exe = "black",
                             args = {"--quiet", "-"},
                             stdin = true
-                        }, {exe = "autopep8", args = {"-"}, stdin = true},
-                                                       "python")
+                        }, "python")
                     },
                     go = {
                         create_formatter_with_fallback({
@@ -313,7 +316,7 @@ return {
                     json = {"prettier", "jq"},
                     html = {"prettier", "tidy"},
                     css = {"prettier"},
-                    python = {"black", "autopep8"},
+                    python = {"ruff", "black", "autopep8"},
                     rust = {"rustfmt"},
                     go = {"gofmt", "goimports"},
                     cpp = {"clang-format", "uncrustify"},
