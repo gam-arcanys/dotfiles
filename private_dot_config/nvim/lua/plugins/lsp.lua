@@ -28,7 +28,8 @@ return {
 
                     -- Disable formatting for specific LSPs (we use formatter.nvim)
                     if client.name == "ts_ls" or client.name == "html" or
-                        client.name == "jsonls" or client.name == "yamlls" then
+                        client.name == "jsonls" or client.name == "yamlls" or
+                        client.name == "cssls" then
                         client.server_capabilities.documentFormattingProvider =
                             false
                         client.server_capabilities
@@ -98,6 +99,48 @@ return {
 
             vim.lsp.enable('rust_analyzer')
 
+            -- tailwindcss: NativeWind support
+            require("lspconfig").tailwindcss.setup({
+                capabilities = capabilities,
+                filetypes = {
+                    "javascript", "javascriptreact",
+                    "typescript", "typescriptreact",
+                },
+                settings = {
+                    tailwindCSS = {
+                        experimental = {
+                            classRegex = {
+                                { [[className\s*=\s*["'`]([^"'`]*)["'`]]] },
+                                { [[tw`([^`]*)]] },
+                                { [[cn\(([^)]*)\)]], [["([^"]*)"]] },
+                            },
+                        },
+                        validate = true,
+                    },
+                },
+                root_dir = require("lspconfig.util").root_pattern(
+                    "tailwind.config.js", "tailwind.config.ts",
+                    "tailwind.config.cjs", "nativewind-env.d.ts",
+                    "nativewind.config.ts"
+                ),
+            })
+
+            -- cssls: StyleSheet CSS property completions
+            require("lspconfig").cssls.setup({
+                capabilities = capabilities,
+            })
+
+            -- jsonls: schema completions via schemastore
+            require("lspconfig").jsonls.setup({
+                capabilities = capabilities,
+                settings = {
+                    json = {
+                        schemas = require("schemastore").json.schemas(),
+                        validate = { enable = true },
+                    },
+                },
+            })
+
             -- Enhanced diagnostics configuration
             vim.diagnostic.config({
                 virtual_text = {prefix = "●", spacing = 4, source = "if_many"},
@@ -137,7 +180,7 @@ return {
         end
     }, {
         "mason-org/mason-lspconfig.nvim",
-        opts = {ensure_installed = {"lua_ls", "ts_ls"}},
+        opts = {ensure_installed = {"lua_ls", "ts_ls", "tailwindcss", "cssls", "jsonls"}},
         dependencies = {{"mason-org/mason.nvim"}, "neovim/nvim-lspconfig"}
     }, {"b0o/schemastore.nvim", lazy = true}
 }
