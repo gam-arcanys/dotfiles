@@ -3,6 +3,7 @@ export PATH="$HOME/nvim-macos-arm64/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="/opt/homebrew/lib/ruby/gems/4.0.0/bin:$PATH"
+export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 {{ else if eq .chezmoi.os "linux" -}}
 export PATH=~/bin:$PATH
 export PATH=~/nvim-linux-x86_64/bin:$PATH
@@ -10,4 +11,3 @@ export PATH=~/lua-language-server-3.13.6-linux-x64/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/uncrustify-uncrustify-0.80.1/build:$PATH
 {{ end -}}
-. "$HOME/.cargo/env"
