@@ -34,6 +34,7 @@ return {
             require("mason-nvim-lint").setup({
                 automatic_installation = true,
                 quiet_mode = true,
+                ignore_install = {"luacheck"},
             })
         end
     }
