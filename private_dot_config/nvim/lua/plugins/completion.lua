@@ -22,7 +22,6 @@ return {
                     format = lspkind.cmp_format({
                         mode = "symbol",
                         maxwidth = {menu = 50, abbr = 50},
-                        symbol_map = {Copilot = ""},
                         ellipsis_char = "...",
                         show_labelDetails = true,
                         before = function(entry, vim_item)
@@ -63,7 +62,6 @@ return {
                 sorting = {
                     priority_weight = 2,
                     comparators = {
-                        require("copilot_cmp.comparators").prioritize,
                         cmp.config.compare.offset, cmp.config.compare.exact,
                         cmp.config.compare.score,
                         cmp.config.compare.recently_used,
@@ -73,7 +71,7 @@ return {
                     }
                 },
                 sources = {
-                    {name = "copilot"}, {name = "nvim_lsp"}, {name = "luasnip"},
+                    {name = "nvim_lsp"}, {name = "luasnip"},
                     {name = "nvim_lsp_signature_help"}, {name = "path"}, {
                         name = "lazydev",
                         group_index = 0 -- set group index to 0 to skip loading LuaLS completions
