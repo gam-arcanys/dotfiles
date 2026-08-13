@@ -22,7 +22,10 @@ bind r source-file ~/.tmux.conf \; display-message "~/.tmux.conf reloaded"
 # Create new session
 bind C-c new-session
 
-bind s choose-tree -Zs -O index
+# Session tree with Claude Code status (@claude_sess/@claude_win are set by
+# ~/.local/bin/claude-tmux-hook via Claude Code hooks; choose-tree formats
+# can't run #() commands, so state is pushed into these user options)
+bind s choose-tree -Zs -O index -F '#{?pane_format,#{pane_current_command} "#{pane_title}",#{?window_format,#{window_name}#{window_flags} (#{window_panes} panes)#{?@claude_win,  #{@claude_win},},#{session_windows} windows#{?session_attached, (attached),}#{?@claude_sess,  #{@claude_sess},}}}'
 
 # Window navigation
 unbind n

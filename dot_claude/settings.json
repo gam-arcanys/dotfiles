@@ -9,5 +9,25 @@
     "mode": "hold"
   },
   "theme": "dark",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook idle" }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook working" }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook working" }] }
+    ],
+    "Notification": [
+      { "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook notification" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook idle" }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "~/.local/bin/claude-tmux-hook clear" }] }
+    ]
+  }
 }

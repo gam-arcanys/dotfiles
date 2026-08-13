@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# claude-tmux-hook - Claude Code hook that tracks per-pane Claude state for tmux
+#
+# Wired up in ~/.claude/settings.json hooks:
+#   claude-tmux-hook working       (UserPromptSubmit, PreToolUse)
+#   claude-tmux-hook idle          (Stop, SessionStart)
+#   claude-tmux-hook notification  (Notification; stdin JSON decides
+#                                   needs_permission vs needs_input)
+#   claude-tmux-hook clear         (SessionEnd)
+#
+# Writes:
+#   /tmp/claude-tmux-status/<pane_id>  - state file read by claude-tmux-status
+#   @claude_sess (session option)      - summary shown on choose-tree session lines
+#   @claude_win  (window option)       - state shown on choose-tree window lines
+
+STATUS_DIR="/tmp/claude-tmux-status"
+
+[ -n "$TMUX_PANE" ] || exit 0
+command -v tmux >/dev/null 2>&1 || exit 0
+
+state="$1"
+if [ "$state" = "notification" ]; then
+    # Hook payload arrives on stdin; permission prompts vs waiting-for-input
+    if grep -qi 'permission' 2>/dev/null; then
+        state="needs_permission"
+    else
+        state="needs_input"
+    fi
+fi
+
+mkdir -p "$STATUS_DIR"
+
+if [ "$state" = "clear" ]; then
+    rm -f "$STATUS_DIR/$TMUX_PANE"
+else
+    printf '%s\n' "$state" >"$STATUS_DIR/$TMUX_PANE"
+fi
+
+# Rebuild @claude_sess/@claude_win for the session containing this pane
+session_id="$(tmux display-message -p -t "$TMUX_PANE" '#{session_id}' 2>/dev/null)"
+[ -n "$session_id" ] || exit 0
+
+sess_str=""
+single_str=""
+count=0
+prev_widx=""
+win_str=""
+win_pri=0
+win_sym=""
+
+# Emit the finished window: window option gets every pane's state in words,
+# the session summary gets one marker per window (worst state wins)
+flush_window() {
+    [ -n "$prev_widx" ] || return 0
+    if [ -n "$win_str" ]; then
+        tmux set-option -w -t "${session_id}:${prev_widx}" @claude_win "$win_str"
+        sess_str="${sess_str}${sess_str:+ }${win_sym}${prev_widx}#[default]"
+    else
+        tmux set-option -wu -t "${session_id}:${prev_widx}" @claude_win 2>/dev/null
+    fi
+}
+
+while read -r widx pane_id; do
+    [ -n "$pane_id" ] || continue
+    if [ "$widx" != "$prev_widx" ]; then
+        flush_window
+        prev_widx="$widx"
+        win_str=""
+        win_pri=0
+        win_sym=""
+    fi
+    f="$STATUS_DIR/$pane_id"
+    [ -f "$f" ] || continue
+    case "$(cat "$f" 2>/dev/null)" in
+        needs_permission) sym="#[fg=red,bold]!"    word="needs permission" pri=4 ;;
+        needs_input)      sym="#[fg=yellow,bold]✦" word="needs input"      pri=3 ;;
+        working)          sym="#[fg=green]●"       word="working"          pri=2 ;;
+        idle)             sym="#[fg=colour245]○"   word="idle"             pri=1 ;;
+        *) continue ;;
+    esac
+    count=$((count + 1))
+    win_str="${win_str}${win_str:+ }${sym} ${word}#[default]"
+    if [ "$pri" -gt "$win_pri" ]; then
+        win_pri=$pri
+        win_sym=$sym
+    fi
+    single_str="${sym} ${word}#[default]"
+done <<EOF
+$(tmux list-panes -s -t "$session_id" -F '#{window_index} #{pane_id}' 2>/dev/null | sort -n)
+EOF
+flush_window
+
+# One Claude in the session: show its state in words; several: symbol+window index
+[ "$count" -eq 1 ] && sess_str="$single_str"
+
+if [ -n "$sess_str" ]; then
+    tmux set-option -t "$session_id" @claude_sess "$sess_str"
+else
+    tmux set-option -u -t "$session_id" @claude_sess 2>/dev/null
+fi
+
+exit 0
