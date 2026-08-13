@@ -1,0 +1,13 @@
+{
+  "model": "claude-fable-5[1m]",
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true
+  },
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "theme": "dark",
+  "voiceEnabled": true
+}
