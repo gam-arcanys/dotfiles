@@ -3,3 +3,9 @@ onboarding = false
 [theme]
 name = "terminal"
 auto_switch = false
+
+[keys]
+focus_pane_left  = ["prefix+h", "ctrl+alt+h"]
+focus_pane_down  = ["prefix+j", "ctrl+alt+j"]
+focus_pane_up    = ["prefix+k", "ctrl+alt+k"]
+focus_pane_right = ["prefix+l", "ctrl+alt+l"]
